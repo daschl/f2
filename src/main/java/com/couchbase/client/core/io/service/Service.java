@@ -36,12 +36,5 @@ public interface Service<REQ extends CouchbaseRequest, RES extends CouchbaseResp
      */
     boolean isConnected();
 
-    /**
-     * Returns the strategy used for bucket/global use.
-     *
-     * @return
-     */
-    BucketServiceStrategy strategy();
-
 
 }

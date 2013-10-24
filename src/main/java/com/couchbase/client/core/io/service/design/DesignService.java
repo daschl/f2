@@ -27,11 +27,6 @@ import java.net.InetSocketAddress;
  */
 public class DesignService implements Service<DesignRequest, DesignResponse> {
 
-    /**
-     * One {@link DesignService} can handle all buckets on one {@link com.couchbase.client.core.io.node.Node}.
-     */
-    public static final BucketServiceStrategy SERVICE_STRATEGY = BucketServiceStrategy.ONE_FOR_ALL;
-
     public static final int DEFAULT_PORT = 8092;
 
     private final TcpClient<DesignResponse, DesignRequest> client;
@@ -120,8 +115,4 @@ public class DesignService implements Service<DesignRequest, DesignResponse> {
         return client.close();
     }
 
-    @Override
-    public BucketServiceStrategy strategy() {
-        return SERVICE_STRATEGY;
-    }
 }

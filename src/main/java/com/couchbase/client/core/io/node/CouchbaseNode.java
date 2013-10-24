@@ -22,11 +22,21 @@ import static reactor.event.selector.Selectors.U;
 
 public class CouchbaseNode implements Node {
 
-    private final Environment env;
-    private final String host;
     private final Reactor serviceReactor;
     private final Registry<Consumer<? extends Event<?>>> registry;
     private final ServiceSpec serviceSpec;
+
+    /**
+     * Constructor for proper unit testing of a {@link CouchbaseNode}.
+     *
+     * @param reactor
+     * @param spec
+     */
+    CouchbaseNode(Reactor reactor, ServiceSpec spec) {
+        serviceReactor = reactor;
+        registry = serviceReactor.getConsumerRegistry();
+        serviceSpec = spec;
+    }
 
     /**
      * Create a new {@link CouchbaseNode}.
@@ -35,8 +45,6 @@ public class CouchbaseNode implements Node {
      * @param env the environment to use.
      */
     public CouchbaseNode(String host, Environment env) {
-        this.host = host;
-        this.env = env;
         serviceReactor = Reactors.reactor(env);
         registry = serviceReactor.getConsumerRegistry();
         serviceSpec = new ServiceSpec().env(env).target(host);
@@ -89,7 +97,6 @@ public class CouchbaseNode implements Node {
             throw new IllegalArgumentException("Bucket needs to be provided for strategy: " + strategy);
         }
     }
-
 
     /**
      * Selector when attaching a consumer to the reactor.
