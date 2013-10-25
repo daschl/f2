@@ -20,30 +20,18 @@
  * IN THE SOFTWARE.
  */
 
-package com.couchbase.client.core.io.service;
+package com.couchbase.client.core.message.request.memcache;
 
-/**
- * Defines the supported {@link ServiceType}s.
- */
-public enum ServiceType {
+public class GetRequest implements MemcacheRequest {
 
-    /**
-     * View service for Design Documents and Views.
-     */
-    DESIGN(BucketServiceStrategy.ONE_FOR_ALL),
+    private final String key;
 
-    /**
-     * Memcache service for key-based binary ops.
-     */
-    MEMCACHE(BucketServiceStrategy.ONE_BY_ONE);
-
-    private final BucketServiceStrategy strategy;
-
-    ServiceType(BucketServiceStrategy strategy) {
-        this.strategy = strategy;
+    public GetRequest(String key) {
+        this.key = key;
     }
 
-    public BucketServiceStrategy strategy() {
-        return strategy;
+    @Override
+    public String key() {
+        return key;
     }
 }

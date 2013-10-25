@@ -15,6 +15,11 @@
             <artifactId>reactor-tcp</artifactId>
             <version>1.0.0.BUILD-SNAPSHOT</version>
         </dependency>
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-codec-memcache</artifactId>
+            <version>4.1.0.Alpha1-SNAPSHOT</version>
+        </dependency>
         <!-- testing deps -->
         <dependency>
             <groupId>junit</groupId>
