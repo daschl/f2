@@ -147,7 +147,7 @@ public class DesignServiceTest {
 
         Service service = new DesignService(mockedClient, ENV);
         assertThat(((ConnectStatus) service.connect().await()).state(), is(ConnectStatus.State.CONNECTED));
-        DesignResponse response = (DesignResponse) ((Promise)service.apply(Event.wrap(request))).await();
+        DesignResponse response = (DesignResponse) service.sendAndReceive(Event.wrap(request)).await();
         assertThat(response, instanceOf(HasDesignDocumentResponse.class));
         assertThat(response.status(), is(status));
     }
@@ -162,7 +162,7 @@ public class DesignServiceTest {
 
         Service service = new DesignService(mockedClient, ENV);
         assertThat(((ConnectStatus) service.connect().await()).state(), is(ConnectStatus.State.CONNECTED));
-        DesignResponse response = (DesignResponse) ((Promise)service.apply(Event.wrap(request))).await();
+        DesignResponse response = (DesignResponse) service.sendAndReceive(Event.wrap(request)).await();
         assertThat(response, instanceOf(HasDesignDocumentResponse.class));
         assertThat(response.status(), is(status));
     }
@@ -178,7 +178,7 @@ public class DesignServiceTest {
 
         Service service = new DesignService(mockedClient, ENV);
         assertThat(((ConnectStatus) service.connect().await()).state(), is(ConnectStatus.State.CONNECTED));
-        GetDesignDocumentResponse response = (GetDesignDocumentResponse) ((Promise)service.apply(Event.wrap(request))).await();
+        GetDesignDocumentResponse response = (GetDesignDocumentResponse) service.sendAndReceive(Event.wrap(request)).await();
         assertThat(response, instanceOf(GetDesignDocumentResponse.class));
         assertThat(response.status(), is(status));
         assertThat(response.content(), is("content"));

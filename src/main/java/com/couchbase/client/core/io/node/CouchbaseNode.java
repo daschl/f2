@@ -5,12 +5,17 @@ import com.couchbase.client.core.io.service.Service;
 import com.couchbase.client.core.io.service.ServiceType;
 import com.couchbase.client.core.io.service.message.ConnectStatus;
 import com.couchbase.client.core.io.service.spec.ServiceSpec;
+import com.couchbase.client.core.message.CouchbaseMessage;
+import com.couchbase.client.core.message.CouchbaseRequest;
+import com.couchbase.client.core.message.CouchbaseResponse;
 import reactor.core.Environment;
 import reactor.core.Reactor;
+import reactor.core.composable.Deferred;
 import reactor.core.composable.Promise;
 import reactor.core.composable.spec.Promises;
 import reactor.core.spec.Reactors;
 import reactor.event.Event;
+import reactor.event.registry.CachingRegistry;
 import reactor.event.registry.Registration;
 import reactor.event.registry.Registry;
 import reactor.event.selector.Selector;
@@ -22,19 +27,17 @@ import static reactor.event.selector.Selectors.U;
 
 public class CouchbaseNode implements Node {
 
-    private final Reactor serviceReactor;
-    private final Registry<Consumer<? extends Event<?>>> registry;
+    private final Registry<Service> registry;
     private final ServiceSpec serviceSpec;
 
     /**
      * Constructor for proper unit testing of a {@link CouchbaseNode}.
      *
-     * @param reactor
+     * @param reg
      * @param spec
      */
-    CouchbaseNode(Reactor reactor, ServiceSpec spec) {
-        serviceReactor = reactor;
-        registry = serviceReactor.getConsumerRegistry();
+    CouchbaseNode(Registry reg, ServiceSpec spec) {
+        registry = reg;
         serviceSpec = spec;
     }
 
@@ -45,8 +48,7 @@ public class CouchbaseNode implements Node {
      * @param env the environment to use.
      */
     public CouchbaseNode(String host, Environment env) {
-        serviceReactor = Reactors.reactor(env);
-        registry = serviceReactor.getConsumerRegistry();
+        registry = new CachingRegistry<Service>();
         serviceSpec = new ServiceSpec().env(env).target(host);
     }
 
@@ -61,7 +63,7 @@ public class CouchbaseNode implements Node {
         return connectPromise.map(new Function<ConnectStatus, ConnectStatus>() {
             @Override
             public ConnectStatus apply(ConnectStatus connectStatus) {
-                serviceReactor.receive(wildcardSelector(type, bucket), service);
+                registry.register(wildcardSelector(type, bucket), service);
                 return connectStatus;
             }
         });
@@ -79,10 +81,22 @@ public class CouchbaseNode implements Node {
             return Promises.success((Void)null).get();
         }
 
-        Registration<? extends Consumer<? extends Event<?>>> reg = registry.select(matchSelector(type, bucket)).get(0);
-        reg.cancel();
-        Service service = (Service)((Reactor.ReplyToConsumer) reg.getObject()).getDelegate();
+        Registration<? extends Service> registration = registry.select(matchSelector(type, bucket)).get(0);
+        registration.cancel();
+        Service service = registration.getObject();
         return service.disconnect();
+    }
+
+    @Override
+    public Promise<? extends CouchbaseResponse> sendAndReceive(ServiceType type, String bucket,
+        Event<? extends CouchbaseRequest> req) {
+        validateTypeAndBucket(type.strategy(), bucket);
+        if (!hasService(type, bucket)) {
+            throw new ServiceNotFoundException("No service of type " + type + " for bucket " + bucket
+                + " registered.");
+        }
+        Registration<? extends Service> registration = registry.select(matchSelector(type, bucket)).get(0);
+        return registration.getObject().sendAndReceive(req);
     }
 
     /**

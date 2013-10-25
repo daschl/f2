@@ -106,7 +106,7 @@ public class DesignService implements Service<DesignRequest, DesignResponse> {
     }
 
     @Override
-    public Promise<DesignResponse> apply(Event<DesignRequest> event) {
+    public Promise<DesignResponse> sendAndReceive(Event<DesignRequest> event) {
         return connection.sendAndReceive(event.getData());
     }
 
