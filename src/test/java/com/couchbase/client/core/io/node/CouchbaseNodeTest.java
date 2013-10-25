@@ -1,3 +1,25 @@
+/**
+ * Copyright (C) 2013 Couchbase, Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALING
+ * IN THE SOFTWARE.
+ */
+
 package com.couchbase.client.core.io.node;
 
 import com.couchbase.client.core.io.service.Service;
@@ -5,32 +27,24 @@ import com.couchbase.client.core.io.service.ServiceType;
 import com.couchbase.client.core.io.service.design.DesignService;
 import com.couchbase.client.core.io.service.message.ConnectStatus;
 import com.couchbase.client.core.io.service.spec.ServiceSpec;
-import com.couchbase.client.core.message.CouchbaseRequest;
 import com.couchbase.client.core.message.CouchbaseResponse;
 import com.couchbase.client.core.message.request.design.HasDesignDocumentRequest;
 import com.couchbase.client.core.message.response.design.DesignResponse;
-import com.couchbase.client.core.message.response.design.GetDesignDocumentResponse;
 import com.couchbase.client.core.message.response.design.HasDesignDocumentResponse;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
-import org.mockito.Matchers;
 import org.mockito.Mockito;
-import reactor.core.Environment;
-import reactor.core.Reactor;
 import reactor.core.composable.Deferred;
 import reactor.core.composable.Promise;
 import reactor.core.composable.spec.Promises;
-import reactor.core.spec.Reactors;
 import reactor.event.Event;
 import reactor.event.registry.CachingRegistry;
 import reactor.event.registry.Registry;
 
-
 import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.assertThat;
-import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.when;
 
 /**
