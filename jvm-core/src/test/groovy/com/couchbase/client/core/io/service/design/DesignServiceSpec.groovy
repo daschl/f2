@@ -20,46 +20,45 @@
  * IN THE SOFTWARE.
  */
 
-package com.couchbase.client.core.io.service;
+package com.couchbase.client.core.io.service.design
+
+import spock.lang.Specification
 
 /**
- * Defines the supported {@link ServiceType}s.
- *
- * A {@link ServiceType} just describes the service in a type-safe manner. Every type has a
- * {@link BucketServiceStrategy} attached that is used to define how many buckets it can support at the same time.
+ * Verifies the functionality of the SUT {@link DesignService}.
  */
-public enum ServiceType {
+class DesignServiceSpec extends Specification {
 
-    /**
-     * View service for Design Documents and Views.
-     */
-    DESIGN(BucketServiceStrategy.ONE_FOR_ALL),
-
-    /**
-     * Memcache service for key-based binary ops.
-     */
-    MEMCACHE(BucketServiceStrategy.ONE_BY_ONE);
-
-    /**
-     * The strategy to use per type.
-     */
-    private final BucketServiceStrategy strategy;
-
-    /**
-     * Create a new {@link ServiceType}.
-     *
-     * @param strategy the strategy to use.
-     */
-    ServiceType(BucketServiceStrategy strategy) {
-        this.strategy = strategy;
+    def "A DesignService should have a default port defined"() {
+        expect:
+            DesignService.DEFAULT_PORT > 0
     }
 
-    /**
-     * Returns the {@link BucketServiceStrategy} of this {@link ServiceType}.
-     *
-     * @return the strategy used.
-     */
-    public BucketServiceStrategy strategy() {
-        return strategy;
+    def "A DesignService should transform connection errors into a Message"() {
+        when: "The node is not available"
+        then:
+            thrown(IllegalArgumentException)
+
+        when: "The address of the remote node cannot be resolved"
+        then:
+            thrown(IllegalArgumentException)
+
+        when: "The connection to the remote node is refused"
+        then:
+            thrown(IllegalArgumentException)
+
+        when: "The connection to the remote node times out"
+        then:
+            thrown(IllegalArgumentException)
+
+        when: "The node is available but the port is not"
+        then:
+            thrown(IllegalArgumentException)
     }
+
+    // todo: handle reconnect
+    // todo: handle closes
+    // todo: handle successful ops
+    // todo: handle failing ops
+
 }

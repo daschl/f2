@@ -20,46 +20,31 @@
  * IN THE SOFTWARE.
  */
 
-package com.couchbase.client.core.io.service;
+package com.couchbase.client.core.io.service
+
+import spock.lang.Specification
 
 /**
- * Defines the supported {@link ServiceType}s.
+ * Verifies the functionality of the SUT {@link ServiceType}.
  *
- * A {@link ServiceType} just describes the service in a type-safe manner. Every type has a
- * {@link BucketServiceStrategy} attached that is used to define how many buckets it can support at the same time.
+ * Note that while testing an ENUM does not make much sense in the first place, this Spec is in place to make sure the
+ * bound strategies are not changed accidentally. Also, the amount of ENUM elements is counted to make sure this test
+ * fails and needs to be adapted if more services get added and/or removed.
  */
-public enum ServiceType {
+class ServiceTypeSpec extends Specification {
 
-    /**
-     * View service for Design Documents and Views.
-     */
-    DESIGN(BucketServiceStrategy.ONE_FOR_ALL),
-
-    /**
-     * Memcache service for key-based binary ops.
-     */
-    MEMCACHE(BucketServiceStrategy.ONE_BY_ONE);
-
-    /**
-     * The strategy to use per type.
-     */
-    private final BucketServiceStrategy strategy;
-
-    /**
-     * Create a new {@link ServiceType}.
-     *
-     * @param strategy the strategy to use.
-     */
-    ServiceType(BucketServiceStrategy strategy) {
-        this.strategy = strategy;
+    def "A Service type has exactly 2 different types defined"() {
+        expect:
+            ServiceType.values().size() == 2
     }
 
-    /**
-     * Returns the {@link BucketServiceStrategy} of this {@link ServiceType}.
-     *
-     * @return the strategy used.
-     */
-    public BucketServiceStrategy strategy() {
-        return strategy;
+    def "A ServiceType needs to bind the following strategies"() {
+        expect:
+            ServiceType.DESIGN.strategy() == BucketServiceStrategy.ONE_FOR_ALL
+            ServiceType.valueOf("DESIGN").strategy() == BucketServiceStrategy.ONE_FOR_ALL
+
+            ServiceType.MEMCACHE.strategy() == BucketServiceStrategy.ONE_BY_ONE
+            ServiceType.valueOf("MEMCACHE").strategy() == BucketServiceStrategy.ONE_BY_ONE
     }
+
 }

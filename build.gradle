@@ -1,7 +1,13 @@
 apply plugin: 'idea'
 
+description = 'The official Couchbase SDK for JVM languages.'
+
 subprojects {
-    version = '2.0'
+    apply plugin: 'jacoco'
+    apply plugin: 'java'
+    apply plugin: 'groovy'
+
+    version = '2.0.0-SNAPSHOT'
     sourceCompatibility = '1.6'
 
     repositories {
@@ -9,12 +15,17 @@ subprojects {
         mavenCentral()
         maven { url 'http://repo.spring.io/libs-snapshot' }
     }
+
+    jacocoTestReport {
+        group = "Reporting"
+        description = "Generate Jacoco coverage reports after running tests."
+        additionalSourceDirs = files(sourceSets.main.allJava.srcDirs)
+    }
 }
 
 project(':jvm-core') {
-    apply plugin: 'java'
-    apply plugin: 'groovy'
-    apply plugin: 'jacoco'
+    description = "Couchbase Client - JVM Core"
+
 
     dependencies {
         compile group: 'org.projectreactor', name: 'reactor-tcp', version: '1.0.0.BUILD-SNAPSHOT'
@@ -29,7 +40,10 @@ project(':jvm-core') {
         testCompile group: 'junit', name: 'junit', version: '4.11'
         testCompile group: 'org.spockframework', name: 'spock-core', version: '0.7-groovy-2.0'
     }
+
 }
+
+
 
 task wrapper(type: Wrapper) {
     gradleVersion = '1.8'

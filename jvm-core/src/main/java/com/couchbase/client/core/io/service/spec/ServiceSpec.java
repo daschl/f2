@@ -72,6 +72,7 @@ public class ServiceSpec implements Supplier<Service> {
      * @return the {@link ServiceSpec} to allow for chaining.
      */
     public ServiceSpec target(String host, int port) {
+        Assert.isTrue(port > 0, "Port needs to be greater than zero.");
         this.host = host;
         this.port = port;
         return this;
@@ -98,10 +99,10 @@ public class ServiceSpec implements Supplier<Service> {
 
         switch(serviceType) {
             case DESIGN:
-                port = port < 0 ? port : DesignService.DEFAULT_PORT;
+                port = port > 0 ? port : DesignService.DEFAULT_PORT;
                 return new DesignService(new InetSocketAddress(host, port), env);
             case MEMCACHE:
-                port = port < 0 ? port : MemcacheService.DEFAULT_PORT;
+                port = port > 0 ? port : MemcacheService.DEFAULT_PORT;
                 return new MemcacheService(new InetSocketAddress(host, port), env);
             default:
                 throw new IllegalArgumentException("Unknown service provided: " + serviceType);
