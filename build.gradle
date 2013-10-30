@@ -8,7 +8,6 @@ subprojects {
         mavenLocal()
         mavenCentral()
         maven { url 'http://repo.spring.io/libs-snapshot' }
-        maven { url  "${rootProject.projectDir}/lib" }
     }
 }
 
@@ -19,7 +18,10 @@ project(':jvm-core') {
 
     dependencies {
         compile group: 'org.projectreactor', name: 'reactor-tcp', version: '1.0.0.BUILD-SNAPSHOT'
-        compile group: 'io.netty', name: 'netty-codec-memcache', version: '4.1.0.Alpha1-SNAPSHOT'
+
+        // use local netty memcache codec until its in the main repo
+        //compile group: 'io.netty', name: 'netty-codec-memcache', version: '4.1.0.Alpha1-SNAPSHOT'
+        compile files('../lib/netty-codec-memcache-4.1.0.Alpha1-SNAPSHOT.jar')
 
         testCompile 'org.codehaus.groovy:groovy-all:2.0.8'
         testCompile group: 'org.mockito', name: 'mockito-all', version: '1.9.5'
