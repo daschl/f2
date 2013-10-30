@@ -16,6 +16,7 @@ subprojects {
 project(':jvm-core') {
     apply plugin: 'java'
     apply plugin: 'groovy'
+    apply plugin: 'jacoco'
 
     dependencies {
         compile group: 'org.projectreactor', name: 'reactor-tcp', version: '1.0.0.BUILD-SNAPSHOT'
