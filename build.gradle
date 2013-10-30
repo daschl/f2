@@ -7,9 +7,8 @@ subprojects {
     repositories {
         mavenLocal()
         mavenCentral()
-        flatDir {
-            dirs 'lib'
-        }
+        maven { url 'http://repo.spring.io/libs-snapshot' }
+        maven { url  "${rootProject.projectDir}/lib" }
     }
 }
 
