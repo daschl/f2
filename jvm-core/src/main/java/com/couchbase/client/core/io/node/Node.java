@@ -23,7 +23,7 @@
 package com.couchbase.client.core.io.node;
 
 import com.couchbase.client.core.io.service.ServiceType;
-import com.couchbase.client.core.io.service.message.ConnectStatus;
+import com.couchbase.client.core.io.service.message.ConnectionStatus;
 import com.couchbase.client.core.message.CouchbaseRequest;
 import com.couchbase.client.core.message.CouchbaseResponse;
 import reactor.core.composable.Promise;
@@ -41,7 +41,7 @@ public interface Node {
      * @param bucket
      * @return
      */
-    Promise<ConnectStatus> addService(final ServiceType type, final String bucket);
+    Promise<ConnectionStatus> addService(final ServiceType type, final String bucket);
 
     /**
      * Check if the given {@link com.couchbase.client.core.io.service.Service} is registered.

@@ -23,13 +23,13 @@
 package com.couchbase.client.core.io.service.message;
 
 /**
- * Identifies the current {@link ConnectStatus} of a {@link com.couchbase.client.core.io.service.Service}.
+ * Identifies the current {@link ConnectionStatus} of a {@link com.couchbase.client.core.io.service.Service}.
  */
-public class ConnectStatus {
+public class ConnectionStatus {
 
     private final State state;
 
-    public ConnectStatus(State state) {
+    public ConnectionStatus(State state) {
         this.state = state;
     }
 
@@ -37,16 +37,16 @@ public class ConnectStatus {
         return state;
     }
 
-    public static ConnectStatus alreadyConnected() {
-        return new ConnectStatus(State.ALREADY_CONNECTED);
+    public static ConnectionStatus alreadyConnected() {
+        return new ConnectionStatus(State.ALREADY_CONNECTED);
     }
 
-    public static ConnectStatus connected() {
-        return new ConnectStatus(State.CONNECTED);
+    public static ConnectionStatus connected() {
+        return new ConnectionStatus(State.CONNECTED);
     }
 
-    public static ConnectStatus stillConnecting() {
-        return new ConnectStatus(State.STILL_CONNECTING);
+    public static ConnectionStatus stillConnecting() {
+        return new ConnectionStatus(State.STILL_CONNECTING);
     }
 
     public static enum State {

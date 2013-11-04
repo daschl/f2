@@ -23,7 +23,7 @@
 package com.couchbase.client.core.io.service.design;
 
 import com.couchbase.client.core.io.service.Service;
-import com.couchbase.client.core.io.service.message.ConnectStatus;
+import com.couchbase.client.core.io.service.message.ConnectionStatus;
 import com.couchbase.client.core.message.request.design.DesignRequest;
 import com.couchbase.client.core.message.response.design.DesignResponse;
 import io.netty.channel.ChannelPipeline;
@@ -93,15 +93,15 @@ public class DesignService implements Service<DesignRequest, DesignResponse> {
     }
 
     @Override
-    public Promise<ConnectStatus> connect() {
+    public Promise<ConnectionStatus> connect() {
         if (isConnected()) {
-            return Promises.success(ConnectStatus.alreadyConnected()).get();
+            return Promises.success(ConnectionStatus.alreadyConnected()).get();
         }
         if (connecting) {
-            return Promises.success(ConnectStatus.stillConnecting()).get();
+            return Promises.success(ConnectionStatus.stillConnecting()).get();
         }
 
-        final Deferred<ConnectStatus, Promise<ConnectStatus>> connectStatus =
+        final Deferred<ConnectionStatus, Promise<ConnectionStatus>> connectStatus =
             Promises.defer(environment, Environment.THREAD_POOL);
 
         connecting = true;
@@ -110,7 +110,7 @@ public class DesignService implements Service<DesignRequest, DesignResponse> {
             public void accept(Promise<TcpConnection<DesignResponse, DesignRequest>> promise) {
                 if (promise.isSuccess()) {
                     connection = promise.get();
-                    connectStatus.accept(ConnectStatus.connected());
+                    connectStatus.accept(ConnectionStatus.connected());
                 } else {
                     connectStatus.accept(promise.reason());
                 }

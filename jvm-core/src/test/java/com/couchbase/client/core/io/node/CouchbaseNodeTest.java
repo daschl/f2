@@ -25,7 +25,7 @@ package com.couchbase.client.core.io.node;
 import com.couchbase.client.core.io.service.Service;
 import com.couchbase.client.core.io.service.ServiceType;
 import com.couchbase.client.core.io.service.design.DesignService;
-import com.couchbase.client.core.io.service.message.ConnectStatus;
+import com.couchbase.client.core.io.service.message.ConnectionStatus;
 import com.couchbase.client.core.io.service.spec.ServiceSpec;
 import com.couchbase.client.core.message.CouchbaseResponse;
 import com.couchbase.client.core.message.request.design.HasDesignDocumentRequest;
@@ -58,8 +58,8 @@ public class CouchbaseNodeTest {
 
     private Registry<Service> registry;
 
-    private final Promise<ConnectStatus> connected =
-        Promises.<ConnectStatus>success(ConnectStatus.connected()).get();
+    private final Promise<ConnectionStatus> connected =
+        Promises.<ConnectionStatus>success(ConnectionStatus.connected()).get();
     private final Service mockedDesignService = Mockito.mock(DesignService.class);
     private final ServiceSpec mockedSpec = Mockito.mock(ServiceSpec.class);
     private final Event<HasDesignDocumentRequest> designRequest =
@@ -88,8 +88,8 @@ public class CouchbaseNodeTest {
     @Test
     public void shouldAddService() throws Exception {
         CouchbaseNode node = new CouchbaseNode(registry, mockedSpec);
-        Promise<ConnectStatus> connectPromise = node.addService(ServiceType.DESIGN, "default");
-        assertThat(connectPromise.await().state(), is(ConnectStatus.State.CONNECTED));
+        Promise<ConnectionStatus> connectPromise = node.addService(ServiceType.DESIGN, "default");
+        assertThat(connectPromise.await().state(), is(ConnectionStatus.State.CONNECTED));
         assertThat(node.hasService(ServiceType.DESIGN, "default"), is(true));
     }
 

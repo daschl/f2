@@ -22,7 +22,7 @@
 
 package com.couchbase.client.core.io.service;
 
-import com.couchbase.client.core.io.service.message.ConnectStatus;
+import com.couchbase.client.core.io.service.message.ConnectionStatus;
 import com.couchbase.client.core.message.CouchbaseRequest;
 import com.couchbase.client.core.message.CouchbaseResponse;
 import reactor.core.composable.Promise;
@@ -40,7 +40,7 @@ public interface Service<REQ extends CouchbaseRequest, RES extends CouchbaseResp
      *
      * @return a {@link Promise} containing the status.
      */
-    Promise<ConnectStatus> connect();
+    Promise<ConnectionStatus> connect();
 
     /**
      * Disconnect the {@link Service} from the endpoint.

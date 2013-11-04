@@ -23,7 +23,7 @@
 package com.couchbase.client.core.io.service.design;
 
 import com.couchbase.client.core.io.service.Service;
-import com.couchbase.client.core.io.service.message.ConnectStatus;
+import com.couchbase.client.core.io.service.message.ConnectionStatus;
 import com.couchbase.client.core.message.request.design.DesignRequest;
 import com.couchbase.client.core.message.request.design.GetDesignDocumentRequest;
 import com.couchbase.client.core.message.request.design.HasDesignDocumentRequest;
@@ -87,9 +87,9 @@ public class DesignServiceTest {
     @Test
     public void shouldContainFailureInMessage() throws Exception {
         final CountDownLatch latch = new CountDownLatch(1);
-        new DesignService(INVALID_PORT, ENV).connect().onComplete(new Consumer<Promise<ConnectStatus>>() {
+        new DesignService(INVALID_PORT, ENV).connect().onComplete(new Consumer<Promise<ConnectionStatus>>() {
             @Override
-            public void accept(Promise<ConnectStatus> promise) {
+            public void accept(Promise<ConnectionStatus> promise) {
                 assertThat(promise.isSuccess(), is(false));
                 assertThat(promise.isError(), is(true));
                 assertThat(promise.reason(), notNullValue());
@@ -106,12 +106,12 @@ public class DesignServiceTest {
 
         Service service = new DesignService(mockedClient, ENV);
         final CountDownLatch latch = new CountDownLatch(1);
-        service.connect().onComplete(new Consumer<Promise<ConnectStatus>>() {
+        service.connect().onComplete(new Consumer<Promise<ConnectionStatus>>() {
             @Override
-            public void accept(Promise<ConnectStatus> result) {
+            public void accept(Promise<ConnectionStatus> result) {
                 assertThat(result.isSuccess(), is(true));
-                assertThat(result.get(), instanceOf(ConnectStatus.class));
-                assertThat(result.get().state(), is(ConnectStatus.State.CONNECTED));
+                assertThat(result.get(), instanceOf(ConnectionStatus.class));
+                assertThat(result.get().state(), is(ConnectionStatus.State.CONNECTED));
                 latch.countDown();
             }
         });
@@ -123,8 +123,8 @@ public class DesignServiceTest {
         when(mockedClient.open()).thenReturn(Promises.success(mockedConnection).get());
 
         Service service = new DesignService(mockedClient, ENV);
-        assertThat(((ConnectStatus) service.connect().await()).state(), is(ConnectStatus.State.CONNECTED));
-        assertThat(((ConnectStatus) service.connect().await()).state(), is(ConnectStatus.State.ALREADY_CONNECTED));
+        assertThat(((ConnectionStatus) service.connect().await()).state(), is(ConnectionStatus.State.CONNECTED));
+        assertThat(((ConnectionStatus) service.connect().await()).state(), is(ConnectionStatus.State.ALREADY_CONNECTED));
     }
 
     @Test
@@ -133,12 +133,12 @@ public class DesignServiceTest {
         when(mockedClient.open()).thenReturn(waitingDeferred.compose());
 
         Service service = new DesignService(mockedClient, ENV);
-        Promise<ConnectStatus> firstAttempt = service.connect();
-        Promise<ConnectStatus> secondAttempt = service.connect();
+        Promise<ConnectionStatus> firstAttempt = service.connect();
+        Promise<ConnectionStatus> secondAttempt = service.connect();
 
-        assertThat(secondAttempt.await().state(), is(ConnectStatus.State.STILL_CONNECTING));
+        assertThat(secondAttempt.await().state(), is(ConnectionStatus.State.STILL_CONNECTING));
         waitingDeferred.accept(mockedConnection);
-        assertThat(firstAttempt.await().state(), is(ConnectStatus.State.CONNECTED));
+        assertThat(firstAttempt.await().state(), is(ConnectionStatus.State.CONNECTED));
     }
 
     @Test
@@ -166,7 +166,7 @@ public class DesignServiceTest {
         when(mockedConnection.sendAndReceive(request)).thenReturn(mockResponse);
 
         Service service = new DesignService(mockedClient, ENV);
-        assertThat(((ConnectStatus) service.connect().await()).state(), is(ConnectStatus.State.CONNECTED));
+        assertThat(((ConnectionStatus) service.connect().await()).state(), is(ConnectionStatus.State.CONNECTED));
         DesignResponse response = (DesignResponse) service.sendAndReceive(Event.wrap(request)).await();
         assertThat(response, instanceOf(HasDesignDocumentResponse.class));
         assertThat(response.status(), is(status));
@@ -181,7 +181,7 @@ public class DesignServiceTest {
         when(mockedConnection.sendAndReceive(request)).thenReturn(mockResponse);
 
         Service service = new DesignService(mockedClient, ENV);
-        assertThat(((ConnectStatus) service.connect().await()).state(), is(ConnectStatus.State.CONNECTED));
+        assertThat(((ConnectionStatus) service.connect().await()).state(), is(ConnectionStatus.State.CONNECTED));
         DesignResponse response = (DesignResponse) service.sendAndReceive(Event.wrap(request)).await();
         assertThat(response, instanceOf(HasDesignDocumentResponse.class));
         assertThat(response.status(), is(status));
@@ -197,7 +197,7 @@ public class DesignServiceTest {
         when(mockedConnection.sendAndReceive(request)).thenReturn(mockResponse);
 
         Service service = new DesignService(mockedClient, ENV);
-        assertThat(((ConnectStatus) service.connect().await()).state(), is(ConnectStatus.State.CONNECTED));
+        assertThat(((ConnectionStatus) service.connect().await()).state(), is(ConnectionStatus.State.CONNECTED));
         GetDesignDocumentResponse response = (GetDesignDocumentResponse) service.sendAndReceive(Event.wrap(request)).await();
         assertThat(response, instanceOf(GetDesignDocumentResponse.class));
         assertThat(response.status(), is(status));

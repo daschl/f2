@@ -25,7 +25,7 @@ package com.couchbase.client.core.io.node;
 import com.couchbase.client.core.io.service.BucketServiceStrategy;
 import com.couchbase.client.core.io.service.Service;
 import com.couchbase.client.core.io.service.ServiceType;
-import com.couchbase.client.core.io.service.message.ConnectStatus;
+import com.couchbase.client.core.io.service.message.ConnectionStatus;
 import com.couchbase.client.core.io.service.spec.ServiceSpec;
 import com.couchbase.client.core.message.CouchbaseRequest;
 import com.couchbase.client.core.message.CouchbaseResponse;
@@ -70,16 +70,16 @@ public class CouchbaseNode implements Node {
     }
 
     @Override
-    public Promise<ConnectStatus> addService(final ServiceType type, final String bucket) {
+    public Promise<ConnectionStatus> addService(final ServiceType type, final String bucket) {
         if (hasService(type, bucket)) {
-            return Promises.success(ConnectStatus.connected()).get();
+            return Promises.success(ConnectionStatus.connected()).get();
         }
 
         final Service service = serviceSpec.type(type).get();
-        Promise<ConnectStatus> connectPromise = service.connect();
-        return connectPromise.map(new Function<ConnectStatus, ConnectStatus>() {
+        Promise<ConnectionStatus> connectPromise = service.connect();
+        return connectPromise.map(new Function<ConnectionStatus, ConnectionStatus>() {
             @Override
-            public ConnectStatus apply(ConnectStatus connectStatus) {
+            public ConnectionStatus apply(ConnectionStatus connectStatus) {
                 registry.register(wildcardSelector(type, bucket), service);
                 return connectStatus;
             }
