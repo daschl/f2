@@ -26,40 +26,40 @@ package com.couchbase.client.core.io.service;
  * Defines the supported {@link ServiceType}s.
  *
  * A {@link ServiceType} just describes the service in a type-safe manner. Every type has a
- * {@link BucketServiceStrategy} attached that is used to define how many buckets it can support at the same time.
+ * {@link BucketServiceMapping} attached that is used to define how many buckets it can support at the same time.
  */
 public enum ServiceType {
 
     /**
      * View service for Design Documents and Views.
      */
-    DESIGN(BucketServiceStrategy.ONE_FOR_ALL),
+    DESIGN(BucketServiceMapping.ONE_FOR_ALL),
 
     /**
      * Memcache service for key-based binary ops.
      */
-    MEMCACHE(BucketServiceStrategy.ONE_BY_ONE);
+    MEMCACHE(BucketServiceMapping.ONE_BY_ONE);
 
     /**
      * The strategy to use per type.
      */
-    private final BucketServiceStrategy strategy;
+    private final BucketServiceMapping mapping;
 
     /**
      * Create a new {@link ServiceType}.
      *
-     * @param strategy the strategy to use.
+     * @param mapping the strategy to use.
      */
-    ServiceType(BucketServiceStrategy strategy) {
-        this.strategy = strategy;
+    ServiceType(BucketServiceMapping mapping) {
+        this.mapping = mapping;
     }
 
     /**
-     * Returns the {@link BucketServiceStrategy} of this {@link ServiceType}.
+     * Returns the {@link BucketServiceMapping} of this {@link ServiceType}.
      *
      * @return the strategy used.
      */
-    public BucketServiceStrategy strategy() {
-        return strategy;
+    public BucketServiceMapping mapping() {
+        return mapping;
     }
 }

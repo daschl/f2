@@ -1,3 +1,25 @@
+/**
+ * Copyright (C) 2013 Couchbase, Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALING
+ * IN THE SOFTWARE.
+ */
+
 package com.couchbase.client.core.io.endpoint;
 
 import org.slf4j.Logger;
@@ -6,12 +28,10 @@ import reactor.core.Environment;
 import reactor.core.composable.Deferred;
 import reactor.core.composable.Promise;
 import reactor.core.composable.Stream;
-import reactor.core.composable.spec.DeferredStreamSpec;
 import reactor.core.composable.spec.Promises;
 import reactor.core.composable.spec.Streams;
 import reactor.event.Event;
 import reactor.function.Consumer;
-import reactor.function.support.Tap;
 import reactor.tcp.Reconnect;
 import reactor.tcp.TcpClient;
 import reactor.tcp.TcpConnection;
@@ -44,7 +64,7 @@ public abstract class AbstractEndpoint<REQ, RES> implements Endpoint<REQ, RES> {
     /**
      * The default reconnect strategy ("only try once") if no other is passed in explicitly.
      */
-    private static final Reconnect DEFAULT_RECONNECT_STRATEGY =
+    public static final Reconnect DEFAULT_RECONNECT_STRATEGY =
         new IncrementalBackoffReconnectSpec().maxAttempts(1).get();
 
     /**
@@ -103,7 +123,7 @@ public abstract class AbstractEndpoint<REQ, RES> implements Endpoint<REQ, RES> {
      * @param client a potentially mocked {@link TcpClient}.
      * @param env the environment to attach to.
      */
-    AbstractEndpoint(final TcpClient<RES, REQ> client, final Environment env) {
+    protected AbstractEndpoint(final TcpClient<RES, REQ> client, final Environment env) {
         this(client, env, DEFAULT_RECONNECT_STRATEGY);
     }
 
@@ -114,7 +134,7 @@ public abstract class AbstractEndpoint<REQ, RES> implements Endpoint<REQ, RES> {
      * @param env the environment to attach to.
      * @param reconnect the {@link Reconnect} strategy to use.
      */
-    AbstractEndpoint(final TcpClient<RES, REQ> client, final Environment env, final Reconnect reconnect) {
+    protected AbstractEndpoint(final TcpClient<RES, REQ> client, final Environment env, final Reconnect reconnect) {
         this.env = env;
         this.client = client;
         this.reconnectStrategy = reconnect;
@@ -129,7 +149,8 @@ public abstract class AbstractEndpoint<REQ, RES> implements Endpoint<REQ, RES> {
      * @param env the environment to attach to.
      * @param opts options for the channel pipeline.
      */
-    AbstractEndpoint(final InetSocketAddress addr, final Environment env, final NettyClientSocketOptions opts) {
+    protected AbstractEndpoint(final InetSocketAddress addr, final Environment env,
+        final NettyClientSocketOptions opts) {
         this(
             new TcpClientSpec<RES, REQ>(NettyTcpClient.class).env(env).options(opts).connect(addr).get(),
             env,
@@ -145,7 +166,7 @@ public abstract class AbstractEndpoint<REQ, RES> implements Endpoint<REQ, RES> {
      * @param opts options for the channel pipeline.
      * @param reconnect the {@link Reconnect} strategy to use.
      */
-    AbstractEndpoint(final InetSocketAddress addr, final Environment env, final NettyClientSocketOptions opts,
+    protected AbstractEndpoint(final InetSocketAddress addr, final Environment env, final NettyClientSocketOptions opts,
         final Reconnect reconnect) {
         this(
             new TcpClientSpec<RES, REQ>(NettyTcpClient.class).env(env).options(opts).connect(addr).get(),

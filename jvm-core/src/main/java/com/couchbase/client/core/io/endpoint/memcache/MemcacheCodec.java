@@ -20,7 +20,7 @@
  * IN THE SOFTWARE.
  */
 
-package com.couchbase.client.core.io.service.memcache;
+package com.couchbase.client.core.io.endpoint.memcache;
 
 import com.couchbase.client.core.message.request.memcache.GetRequest;
 import com.couchbase.client.core.message.request.memcache.MemcacheRequest;

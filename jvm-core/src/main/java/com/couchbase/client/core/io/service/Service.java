@@ -22,47 +22,59 @@
 
 package com.couchbase.client.core.io.service;
 
-import com.couchbase.client.core.io.service.message.ConnectionStatus;
-import com.couchbase.client.core.message.CouchbaseRequest;
-import com.couchbase.client.core.message.CouchbaseResponse;
 import reactor.core.composable.Promise;
+import reactor.core.composable.Stream;
 import reactor.event.Event;
 
 /**
- * Defines the common methods for all {@link Service} implementations.
- *
- * Every {@link Service} needs to implement a response that follows a request.
+ * A {@link Service} consists of one or more {@link com.couchbase.client.core.io.endpoint.Endpoint}s to provide
+ * and multiplex the underlying IO operations.
  */
-public interface Service<REQ extends CouchbaseRequest, RES extends CouchbaseResponse> {
+public interface Service<REQ, RES> {
 
     /**
-     * Connect the {@link Service} to the endpoint.
+     * Attempt to connect this endpoint.
      *
-     * @return a {@link Promise} containing the status.
-     */
-    Promise<ConnectionStatus> connect();
-
-    /**
-     * Disconnect the {@link Service} from the endpoint.
-     *
-     * @return a {@link Promise} when disconnect is finished.
-     */
-    Promise<Void> disconnect();
-
-    /**
-     * Returns true if the service is currently connected.
-     *
-     * @return true if the service is connected.
-     */
-    boolean isConnected();
-
-    /**
-     * Werite a Request and receive a response from the service.
-     *
-     * @param event
      * @return
      */
-    Promise<RES> sendAndReceive(Event<REQ> event);
+    Promise<ServiceState> connect();
+
+    /**
+     * Attempt to disconnect this endpoint.
+     *
+     * @return
+     */
+    Promise<ServiceState> disconnect();
 
 
+    /**
+     * Attempt to send the request and receive a response.
+     *
+     * @param requestEvent the incoming request wrapped in an {@link reactor.event.Event}.
+     * @return the deferred response.
+     * @throws ServiceNotConnectedException if currently not connected.
+     */
+    Promise<RES> sendAndReceive(Event<REQ> requestEvent) throws ServiceNotConnectedException;
+
+
+    /**
+     * The current {@link ServiceState}.
+     *
+     * @return
+     */
+    ServiceState state();
+
+    /**
+     * A {@link Stream} that always gets updated when the {@link ServiceState} changes.
+     *
+     * @return
+     */
+    Stream<ServiceState> stateStream();
+
+    /**
+     * Helper method to identify if this {@link Service} is connected.
+     *
+     * @return
+     */
+    boolean isConnected();
 }

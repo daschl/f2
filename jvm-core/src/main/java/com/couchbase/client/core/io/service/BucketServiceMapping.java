@@ -20,38 +20,20 @@
  * IN THE SOFTWARE.
  */
 
-package com.couchbase.client.core.io.service.message;
+package com.couchbase.client.core.io.service;
 
 /**
- * Identifies the current {@link ConnectionStatus} of a {@link com.couchbase.client.core.io.service.Service}.
+ * Defines the a bucket mapping strategy for each service.
  */
-public class ConnectionStatus {
+public enum BucketServiceMapping {
 
-    private final State state;
+    /**
+     * The Service can handle all buckets at once.
+     */
+    ONE_FOR_ALL,
 
-    public ConnectionStatus(State state) {
-        this.state = state;
-    }
-
-    public State state() {
-        return state;
-    }
-
-    public static ConnectionStatus alreadyConnected() {
-        return new ConnectionStatus(State.ALREADY_CONNECTED);
-    }
-
-    public static ConnectionStatus connected() {
-        return new ConnectionStatus(State.CONNECTED);
-    }
-
-    public static ConnectionStatus stillConnecting() {
-        return new ConnectionStatus(State.STILL_CONNECTING);
-    }
-
-    public static enum State {
-        ALREADY_CONNECTED,
-        CONNECTED,
-        STILL_CONNECTING
-    }
+    /**
+     * Every bucket needs its own service.
+     */
+    ONE_BY_ONE
 }

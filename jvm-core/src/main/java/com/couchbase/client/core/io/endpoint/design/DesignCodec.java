@@ -20,9 +20,9 @@
  * IN THE SOFTWARE.
  */
 
-package com.couchbase.client.core.io.service.design;
+package com.couchbase.client.core.io.endpoint.design;
 
-import com.couchbase.client.core.io.service.util.HttpUtils;
+import com.couchbase.client.core.util.HttpUtils;
 import com.couchbase.client.core.message.request.design.DesignRequest;
 import com.couchbase.client.core.message.request.design.GetDesignDocumentRequest;
 import com.couchbase.client.core.message.request.design.HasDesignDocumentRequest;

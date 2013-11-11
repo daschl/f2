@@ -20,28 +20,31 @@
  * IN THE SOFTWARE.
  */
 
-package com.couchbase.client.core.io.node;
+package com.couchbase.client.core.util;
 
-import com.couchbase.client.core.CouchbaseException;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
+import io.netty.handler.codec.base64.Base64;
+import io.netty.handler.codec.http.HttpHeaders;
+import io.netty.handler.codec.http.HttpRequest;
+import io.netty.util.CharsetUtil;
 
-public class ServiceNotFoundException extends CouchbaseException {
+/**
+ * Utility methods to ease the HTTP workings.
+ */
+public class HttpUtils {
 
-    public ServiceNotFoundException() {
+    /**
+     * Add the HTTP basic auth headers to a netty request.
+     *
+     * @param request the request to modify.
+     * @param user the user of the request.
+     * @param password the password of the request.
+     */
+    public static void addAuth(final HttpRequest request, final String user, final String password) {
+        String auth = user + ":" + password;
+        ByteBuf encoded = Base64.encode(Unpooled.copiedBuffer(auth, CharsetUtil.UTF_8));
+        request.headers().add(HttpHeaders.Names.AUTHORIZATION, encoded.toString(CharsetUtil.UTF_8));
     }
 
-    public ServiceNotFoundException(String message) {
-        super(message);
-    }
-
-    public ServiceNotFoundException(String message, Throwable cause) {
-        super(message, cause);
-    }
-
-    public ServiceNotFoundException(Throwable cause) {
-        super(cause);
-    }
-
-    public ServiceNotFoundException(String message, Throwable cause, boolean enableSuppression, boolean writableStackTrace) {
-        super(message, cause, enableSuppression, writableStackTrace);
-    }
 }

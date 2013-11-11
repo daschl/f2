@@ -43,8 +43,6 @@ project(':jvm-core') {
 
 }
 
-
-
 task wrapper(type: Wrapper) {
     gradleVersion = '1.8'
 }
