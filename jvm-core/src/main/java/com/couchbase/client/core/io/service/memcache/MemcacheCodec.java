@@ -31,10 +31,7 @@ import io.netty.channel.CombinedChannelDuplexHandler;
 import io.netty.handler.codec.MessageToMessageDecoder;
 import io.netty.handler.codec.MessageToMessageEncoder;
 import io.netty.handler.codec.memcache.binary.*;
-import io.netty.util.CharsetUtil;
-import io.netty.util.internal.StringUtil;
 
-import java.nio.charset.Charset;
 import java.util.ArrayDeque;
 import java.util.List;
 import java.util.Queue;
