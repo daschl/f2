@@ -38,7 +38,7 @@ public class GenericEndpointHandler<REQ, RES> extends ChannelHandlerAppender {
             public void run() {
                 ctx.flush();
             }
-        }, 0, 50, TimeUnit.MICROSECONDS);
+        }, 0, 75, TimeUnit.MICROSECONDS);
     }
 
     final class EventResponseDecoder extends MessageToMessageDecoder<RES> {
