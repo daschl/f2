@@ -20,19 +20,12 @@
  * IN THE SOFTWARE.
  */
 
-package com.couchbase.client.core.io.endpoint.memcache
+package com.couchbase.client.core.io.service
 
-import reactor.core.Environment
 import spock.lang.Specification
 
 /**
- * Verifies the correct functionality of the {@link MemcacheEndpoint}
+ * Verifies the functionality of a {@link AbstractService}.
  */
-class MemcacheEndpointSpec extends Specification {
-
-    def env = new Environment()
-
-    def "A MemcacheEndpoint should accept a MemcacheRequest and respond with a MemcacheResponse"() {
-    }
-
+class AbstractServiceSpec extends Specification {
 }

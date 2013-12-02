@@ -26,6 +26,7 @@ import com.couchbase.client.core.io.endpoint.AbstractEndpoint;
 import com.couchbase.client.core.message.request.design.DesignRequest;
 import com.couchbase.client.core.message.response.design.DesignResponse;
 import io.netty.channel.ChannelPipeline;
+import io.netty.channel.EventLoopGroup;
 import io.netty.handler.codec.http.HttpClientCodec;
 import io.netty.handler.codec.http.HttpObjectAggregator;
 import reactor.core.Environment;
@@ -41,8 +42,8 @@ import java.net.InetSocketAddress;
  */
 public class DesignEndpoint extends AbstractEndpoint<DesignRequest, DesignResponse> {
 
-    public DesignEndpoint(final InetSocketAddress addr, final Environment env) {
-        super(addr, env);
+    public DesignEndpoint(final InetSocketAddress addr, final Environment env, final EventLoopGroup group) {
+        super(addr, env, group);
     }
 
     @Override

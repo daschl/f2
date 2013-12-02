@@ -1,12 +1,28 @@
+/**
+ * Copyright (C) 2013 Couchbase, Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALING
+ * IN THE SOFTWARE.
+ */
+
 package com.couchbase.client.core.io.endpoint.design
 
-import com.couchbase.client.core.io.endpoint.EndpointState
-import com.couchbase.client.core.message.request.design.GetDesignDocumentRequest
-import com.couchbase.client.core.message.request.memcache.GetRequest
-import com.couchbase.client.core.message.response.memcache.MemcacheResponse
 import reactor.core.Environment
-import reactor.core.composable.Promise
-import reactor.event.Event
 import spock.lang.Specification
 
 /**
@@ -17,34 +33,6 @@ class DesignEndpointSpec extends Specification {
     def env = new Environment()
 
     def "A DesignEndpoint should accept a DesignRequest and respond with a DesignResponse"() {
-        setup:
-        DesignEndpoint endpoint = new DesignEndpoint(new InetSocketAddress(8092), env)
-
-        when:
-        Promise<EndpointState> connectPromise = endpoint.connect()
-
-        then:
-        connectPromise.await() == EndpointState.CONNECTED
-
-        when:
-        Promise<MemcacheResponse> response = endpoint.sendAndReceive(Event.wrap(new GetDesignDocumentRequest("default", "foo")));
-
-        then:
-        System.out.println(response.await())
-
-    }
-
-
-    def "ruuuun"() {
-        when:
-        DesignEndpoint endpoint = new DesignEndpoint(new InetSocketAddress(8092), env)
-        endpoint.connect().await()
-
-        then:
-        while (true) {
-            endpoint.sendAndReceive(Event.wrap(new GetDesignDocumentRequest("default", "foo"))).await()
-
-        }
     }
 
 }

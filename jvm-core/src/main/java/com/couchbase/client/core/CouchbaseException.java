@@ -22,6 +22,9 @@
 
 package com.couchbase.client.core;
 
+/**
+ * The root exception for everything raised by this driver.
+ */
 public class CouchbaseException extends RuntimeException {
 
     public CouchbaseException() {

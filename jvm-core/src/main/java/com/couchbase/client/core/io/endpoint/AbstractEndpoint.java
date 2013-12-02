@@ -62,12 +62,6 @@ public abstract class AbstractEndpoint<REQ, RES> implements Endpoint<REQ, RES> {
         = new EndpointNotConnectedException("Endpoint is not connected");
 
     /**
-     * The default reconnect strategy ("only try once") if no other is passed in explicitly.
-     */
-    public static final Reconnect DEFAULT_RECONNECT_STRATEGY =
-        new IncrementalBackoffReconnectSpec().maxAttempts(1).get();
-
-    /**
      * The {@link Environment} to attach to.
      */
     private final Environment env;
@@ -110,25 +104,19 @@ public abstract class AbstractEndpoint<REQ, RES> implements Endpoint<REQ, RES> {
     }
 
     /**
-     * Add custom endpoint handlers to the {@link ChannelPipeline}.
-     *
-     * @param pipeline the pipeline where to add handlers.
-     */
-    protected abstract void customEndpointHandlers(final ChannelPipeline pipeline);
-
-    /**
      * Create a new {@link AbstractEndpoint} and supply essential params.
      *
      * @param addr the socket address to connect to.
      * @param env the environment to attach to.
+     * @param group the {@link EventLoopGroup} to use.
      */
-    protected AbstractEndpoint(final InetSocketAddress addr, final Environment env) {
+    protected AbstractEndpoint(final InetSocketAddress addr, final Environment env, final EventLoopGroup group) {
         this.env = env;
         endpointStateDeferred = Streams.defer(env, defaultPromiseEnv);
         endpointStateStream = endpointStateDeferred.compose();
 
         connectionBootstrap = new Bootstrap()
-            .group(new NioEventLoopGroup())
+            .group(group)
             .channel(NioSocketChannel.class)
             .handler(new ChannelInitializer<SocketChannel>() {
                 @Override
@@ -142,6 +130,13 @@ public abstract class AbstractEndpoint<REQ, RES> implements Endpoint<REQ, RES> {
             .option(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT)
             .remoteAddress(addr);
     }
+
+    /**
+     * Add custom endpoint handlers to the {@link ChannelPipeline}.
+     *
+     * @param pipeline the pipeline where to add handlers.
+     */
+    protected abstract void customEndpointHandlers(final ChannelPipeline pipeline);
 
     @Override
     public Promise<EndpointState> connect() {

@@ -43,9 +43,12 @@ public class HttpUtils {
      */
     public static void addAuth(final HttpRequest request, final String user, final String password) {
         ByteBuf rawBuf = Unpooled.copiedBuffer(user + ":" + password, CharsetUtil.UTF_8);
-        ByteBuf encoded = Base64.encode(rawBuf);
-        rawBuf.release();
-        request.headers().add(HttpHeaders.Names.AUTHORIZATION, encoded.toString(CharsetUtil.UTF_8));
+        try {
+            ByteBuf encoded = Base64.encode(rawBuf);
+            request.headers().add(HttpHeaders.Names.AUTHORIZATION, encoded.toString(CharsetUtil.UTF_8));
+        } finally {
+            rawBuf.release();
+        }
     }
 
 }
