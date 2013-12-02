@@ -26,5 +26,4 @@ import com.couchbase.client.core.message.CouchbaseRequest;
 
 public interface MemcacheRequest extends CouchbaseRequest {
 
-    String key();
 }

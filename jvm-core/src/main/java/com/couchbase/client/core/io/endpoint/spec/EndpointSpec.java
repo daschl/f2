@@ -41,9 +41,9 @@ public class EndpointSpec implements Supplier<Endpoint> {
     public Endpoint get() {
         switch (serviceType) {
             case DESIGN:
-                return new DesignEndpoint(addr, env, reconnectStrategy);
+                return new DesignEndpoint(addr, env);
             case MEMCACHE:
-                return new MemcacheEndpoint(addr, env, reconnectStrategy);
+                return new MemcacheEndpoint(addr, env);
             default:
                 throw new IllegalArgumentException("Could not create Endpoint for type: " + serviceType);
         }

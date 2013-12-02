@@ -30,7 +30,6 @@ public class GetRequest implements MemcacheRequest {
         this.key = key;
     }
 
-    @Override
     public String key() {
         return key;
     }

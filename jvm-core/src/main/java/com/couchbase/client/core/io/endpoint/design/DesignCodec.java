@@ -29,8 +29,8 @@ import com.couchbase.client.core.message.request.design.HasDesignDocumentRequest
 import com.couchbase.client.core.message.response.design.DesignResponse;
 import com.couchbase.client.core.message.response.design.GetDesignDocumentResponse;
 import com.couchbase.client.core.message.response.design.HasDesignDocumentResponse;
+import io.netty.channel.ChannelHandlerAppender;
 import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.CombinedChannelDuplexHandler;
 import io.netty.handler.codec.MessageToMessageDecoder;
 import io.netty.handler.codec.MessageToMessageEncoder;
 import io.netty.handler.codec.http.*;
@@ -40,13 +40,13 @@ import java.util.ArrayDeque;
 import java.util.List;
 import java.util.Queue;
 
-class DesignCodec extends CombinedChannelDuplexHandler<DesignCodec.DesignDecoder, DesignCodec.DesignEncoder> {
+class DesignCodec extends ChannelHandlerAppender {
 
 
     private final Queue<Class<?>> queue = new ArrayDeque<Class<?>>();
 
     public DesignCodec() {
-        init(new DesignDecoder(), new DesignEncoder());
+        add(new DesignDecoder(), new DesignEncoder());
     }
 
     public class DesignEncoder extends MessageToMessageEncoder<DesignRequest> {

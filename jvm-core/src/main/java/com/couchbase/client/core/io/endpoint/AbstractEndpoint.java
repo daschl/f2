@@ -22,6 +22,13 @@
 
 package com.couchbase.client.core.io.endpoint;
 
+import io.netty.bootstrap.Bootstrap;
+import io.netty.buffer.PooledByteBufAllocator;
+import io.netty.channel.*;
+import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.socket.SocketChannel;
+import io.netty.channel.socket.nio.NioSocketChannel;
+import io.netty.handler.logging.LoggingHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.Environment;
@@ -31,22 +38,15 @@ import reactor.core.composable.Stream;
 import reactor.core.composable.spec.Promises;
 import reactor.core.composable.spec.Streams;
 import reactor.event.Event;
-import reactor.function.Consumer;
 import reactor.tcp.Reconnect;
-import reactor.tcp.TcpClient;
-import reactor.tcp.TcpConnection;
-import reactor.tcp.netty.NettyClientSocketOptions;
-import reactor.tcp.netty.NettyTcpClient;
+
 import reactor.tcp.spec.IncrementalBackoffReconnectSpec;
-import reactor.tcp.spec.TcpClientSpec;
 
 import java.net.InetSocketAddress;
 
 /**
  * Implements common functionality needed by all {@link Endpoint}s.
  *
- * TODO:
- *  - test reconnect logic
  */
 public abstract class AbstractEndpoint<REQ, RES> implements Endpoint<REQ, RES> {
 
@@ -73,14 +73,9 @@ public abstract class AbstractEndpoint<REQ, RES> implements Endpoint<REQ, RES> {
     private final Environment env;
 
     /**
-     * Default execution pool to use for promises.
+     * Default execution environment to use for promises.
      */
-    private final String defaultPool =  Environment.THREAD_POOL;
-
-    /**
-     * Contains the {@link TcpClient} from where the {@link Endpoint} connects to a {@link TcpConnection}.
-     */
-    private final TcpClient<RES, REQ> client;
+    private final String defaultPromiseEnv =  Environment.THREAD_POOL;
 
     /**
      * Deferred to get populated when the {@link EndpointState} changes.
@@ -93,14 +88,14 @@ public abstract class AbstractEndpoint<REQ, RES> implements Endpoint<REQ, RES> {
     private final Stream<EndpointState> endpointStateStream;
 
     /**
-     * Contains the {@link Reconnect} strategy for this endpoint.
+     * {@link Bootstrap} to use for this endpoint.
      */
-    private final Reconnect reconnectStrategy;
+    private final Bootstrap connectionBootstrap;
 
     /**
-     * The (potentially bound) {@link TcpConnection}.
+     * Represents the Netty channel of this endpoint.
      */
-    private volatile TcpConnection<RES, REQ> connection;
+    private volatile Channel channel;
 
     /**
      * Holds the current {@link EndpointState}.
@@ -115,64 +110,37 @@ public abstract class AbstractEndpoint<REQ, RES> implements Endpoint<REQ, RES> {
     }
 
     /**
-     * Create a new {@link Endpoint} by passing in the {@link TcpClient} explicitly.
+     * Add custom endpoint handlers to the {@link ChannelPipeline}.
      *
-     * Since no explicit {@link Reconnect} strategy is used, no reconnect logic is applied (one connect try and if not,
-     * fail).
-     *
-     * @param client a potentially mocked {@link TcpClient}.
-     * @param env the environment to attach to.
+     * @param pipeline the pipeline where to add handlers.
      */
-    protected AbstractEndpoint(final TcpClient<RES, REQ> client, final Environment env) {
-        this(client, env, DEFAULT_RECONNECT_STRATEGY);
-    }
+    protected abstract void customEndpointHandlers(final ChannelPipeline pipeline);
 
     /**
-     * Create a new {@link Endpoint} by passing in the {@link TcpClient} explicitly.
+     * Create a new {@link AbstractEndpoint} and supply essential params.
      *
-     * @param client a potentially mocked {@link TcpClient}.
+     * @param addr the socket address to connect to.
      * @param env the environment to attach to.
-     * @param reconnect the {@link Reconnect} strategy to use.
      */
-    protected AbstractEndpoint(final TcpClient<RES, REQ> client, final Environment env, final Reconnect reconnect) {
+    protected AbstractEndpoint(final InetSocketAddress addr, final Environment env) {
         this.env = env;
-        this.client = client;
-        this.reconnectStrategy = reconnect;
-        endpointStateDeferred = Streams.defer(env, defaultPool);
+        endpointStateDeferred = Streams.defer(env, defaultPromiseEnv);
         endpointStateStream = endpointStateDeferred.compose();
-    }
 
-    /**
-     * Create a new {@link AbstractEndpoint} and supply essential params.
-     *
-     * @param addr the socket address to connect to.
-     * @param env the environment to attach to.
-     * @param opts options for the channel pipeline.
-     */
-    protected AbstractEndpoint(final InetSocketAddress addr, final Environment env,
-        final NettyClientSocketOptions opts) {
-        this(
-            new TcpClientSpec<RES, REQ>(NettyTcpClient.class).env(env).options(opts).connect(addr).get(),
-            env,
-            DEFAULT_RECONNECT_STRATEGY
-        );
-    }
-
-    /**
-     * Create a new {@link AbstractEndpoint} and supply essential params.
-     *
-     * @param addr the socket address to connect to.
-     * @param env the environment to attach to.
-     * @param opts options for the channel pipeline.
-     * @param reconnect the {@link Reconnect} strategy to use.
-     */
-    protected AbstractEndpoint(final InetSocketAddress addr, final Environment env, final NettyClientSocketOptions opts,
-        final Reconnect reconnect) {
-        this(
-            new TcpClientSpec<RES, REQ>(NettyTcpClient.class).env(env).options(opts).connect(addr).get(),
-            env,
-            reconnect
-        );
+        connectionBootstrap = new Bootstrap()
+            .group(new NioEventLoopGroup())
+            .channel(NioSocketChannel.class)
+            .handler(new ChannelInitializer<SocketChannel>() {
+                @Override
+                protected void initChannel(SocketChannel ch) throws Exception {
+                    ChannelPipeline pipeline = ch.pipeline();
+                    //pipeline.addLast(new LoggingHandler());
+                    customEndpointHandlers(pipeline);
+                    pipeline.addLast(new GenericEndpointHandler<REQ, RES>());
+                }
+            })
+            .option(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT)
+            .remoteAddress(addr);
     }
 
     @Override
@@ -182,26 +150,23 @@ public abstract class AbstractEndpoint<REQ, RES> implements Endpoint<REQ, RES> {
         }
         transitionState(EndpointState.CONNECTING);
 
-        final Deferred<EndpointState, Promise<EndpointState>> deferred = Promises.defer(env, defaultPool);
-        client.open(reconnectStrategy)
-            .consume(new Consumer<TcpConnection<RES, REQ>>() {
-                @Override
-                public void accept(TcpConnection<RES, REQ> conn) {
-                    connection = conn;
+        final Deferred<EndpointState, Promise<EndpointState>> deferred = Promises.defer(env, defaultPromiseEnv);
+        connectionBootstrap.connect().addListener(new ChannelFutureListener() {
+            @Override
+            public void operationComplete(ChannelFuture future) throws Exception {
+                if (future.isSuccess()) {
+                    channel = future.channel();
                     transitionState(EndpointState.CONNECTED);
-                    LOGGER.debug("Successfully connected Endpoint to: " + conn.remoteAddress());
+                    LOGGER.debug("Successfully connected Endpoint to: " + channel.remoteAddress());
                     deferred.accept(state);
-                }
-            })
-            .when(Exception.class, new Consumer<Exception>() {
-                @Override
-                public void accept(Exception e) {
-                    connection = null;
+                } else {
+                    channel = null;
                     transitionState(EndpointState.DISCONNECTED);
-                    LOGGER.debug("Could not connect to Endpoint", e);
+                    LOGGER.debug("Could not connect to Endpoint", future.cause());
                     deferred.accept(state);
                 }
-            });
+            }
+        });
         return deferred.compose();
     }
 
@@ -212,30 +177,33 @@ public abstract class AbstractEndpoint<REQ, RES> implements Endpoint<REQ, RES> {
         }
         transitionState(EndpointState.DISCONNECTING);
 
-        final Deferred<EndpointState, Promise<EndpointState>> deferred = Promises.defer(env, defaultPool);
-        client.close().onComplete(new Consumer<Promise<Void>>() {
+        final Deferred<EndpointState, Promise<EndpointState>> deferred = Promises.defer(env, defaultPromiseEnv);
+        channel.disconnect().addListener(new ChannelFutureListener() {
             @Override
-            public void accept(Promise<Void> promise) {
+            public void operationComplete(ChannelFuture future) throws Exception {
                 transitionState(EndpointState.DISCONNECTED);
                 deferred.accept(state);
-                if (promise.isSuccess()) {
-                    LOGGER.debug("Successfully disconnected Endpoint from: " + connection.remoteAddress());
+                if (future.isSuccess()) {
+                    LOGGER.debug("Successfully disconnected Endpoint from: " + channel.remoteAddress());
                 } else {
                     LOGGER.error("Detected error during Endpoint disconnect phase from: "
-                        + connection.remoteAddress(), promise.reason());
+                        + channel.remoteAddress(), future.cause());
                 }
-                connection = null;
+                channel = null;
             }
         });
         return deferred.compose();
     }
 
     @Override
-    public Promise<RES> sendAndReceive(final Event<REQ> requestEvent) throws EndpointNotConnectedException {
+    public Promise<RES> sendAndReceive(final Event<? extends REQ> requestEvent) throws EndpointNotConnectedException {
         if (!isConnected()) {
             throw NOT_CONNECTED_EXCEPTION;
         }
-        return connection.sendAndReceive(requestEvent.getData());
+        final Deferred<RES, Promise<RES>> deferred = Promises.defer(env, Environment.EVENT_LOOP);
+        requestEvent.setReplyTo(deferred);
+        channel.write(requestEvent);
+        return deferred.compose();
     }
 
     @Override

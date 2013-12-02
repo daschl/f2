@@ -35,7 +35,7 @@ public interface Endpoint<REQ, RES> {
      * @return the deferred response.
      * @throws EndpointNotConnectedException if currently not connected.
      */
-    Promise<RES> sendAndReceive(Event<REQ> requestEvent) throws EndpointNotConnectedException;
+    Promise<RES> sendAndReceive(Event<? extends REQ> requestEvent) throws EndpointNotConnectedException;
 
 
     /**

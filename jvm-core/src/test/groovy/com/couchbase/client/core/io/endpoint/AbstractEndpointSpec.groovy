@@ -22,6 +22,7 @@
 
 package com.couchbase.client.core.io.endpoint
 
+import io.netty.channel.ChannelPipeline
 import reactor.core.Environment
 import reactor.core.composable.Promise
 import reactor.core.composable.Stream
@@ -184,9 +185,13 @@ class AbstractEndpointSpec extends Specification {
      */
     class DummyEndpoint extends AbstractEndpoint<String, String> {
 
-        DummyEndpoint(final TcpClient<String, String> client, final Environment env, final int attempts) {
-            super(client, env, new IncrementalBackoffReconnectSpec().maxAttempts(attempts).get())
+        DummyEndpoint(InetSocketAddress addr, Environment env) {
+            super(addr, env)
         }
 
+        @Override
+        protected void customEndpointHandlers(ChannelPipeline pipeline) {
+
+        }
     }
 }

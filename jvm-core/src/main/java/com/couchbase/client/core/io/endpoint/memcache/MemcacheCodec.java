@@ -24,10 +24,12 @@ package com.couchbase.client.core.io.endpoint.memcache;
 
 import com.couchbase.client.core.message.request.memcache.GetRequest;
 import com.couchbase.client.core.message.request.memcache.MemcacheRequest;
+import com.couchbase.client.core.message.request.memcache.NoopRequest;
 import com.couchbase.client.core.message.response.memcache.GetResponse;
+import com.couchbase.client.core.message.response.memcache.NoopResponse;
 import io.netty.buffer.Unpooled;
+import io.netty.channel.ChannelHandlerAppender;
 import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.CombinedChannelDuplexHandler;
 import io.netty.handler.codec.MessageToMessageDecoder;
 import io.netty.handler.codec.MessageToMessageEncoder;
 import io.netty.handler.codec.memcache.binary.*;
@@ -37,12 +39,12 @@ import java.util.List;
 import java.util.Queue;
 
 
-public class MemcacheCodec extends CombinedChannelDuplexHandler<MemcacheCodec.MemcacheDecoder, MemcacheCodec.MemcacheEncoder> {
+public class MemcacheCodec extends ChannelHandlerAppender {
 
     private final Queue<Class<?>> queue = new ArrayDeque<Class<?>>();
 
     public MemcacheCodec() {
-        init(new MemcacheDecoder(), new MemcacheEncoder());
+        add(new MemcacheDecoder(), new MemcacheEncoder());
     }
 
     public class MemcacheEncoder extends MessageToMessageEncoder<MemcacheRequest> {
@@ -52,11 +54,16 @@ public class MemcacheCodec extends CombinedChannelDuplexHandler<MemcacheCodec.Me
             queue.offer(msg.getClass());
 
             BinaryMemcacheRequest request = null;
+            BinaryMemcacheRequestHeader header = new DefaultBinaryMemcacheRequestHeader();
             if (msg instanceof GetRequest) {
-                BinaryMemcacheRequestHeader header = new DefaultBinaryMemcacheRequestHeader();
-                header.setKeyLength((short) msg.key().length());
-                header.setTotalBodyLength((short) msg.key().length());
-                request = new DefaultFullBinaryMemcacheRequest(header, msg.key(), Unpooled.EMPTY_BUFFER);
+                GetRequest req = (GetRequest) msg;
+                header.setOpcode(BinaryMemcacheOpcodes.GET);
+                header.setKeyLength((short) req.key().length());
+                header.setTotalBodyLength((short) req.key().length());
+                request = new DefaultBinaryMemcacheRequest(header, req.key());
+            } else if (msg instanceof NoopRequest) {
+                header.setOpcode(BinaryMemcacheOpcodes.NOOP);
+                request = new DefaultBinaryMemcacheRequest(header);
             }
 
             out.add(request);
@@ -69,16 +76,21 @@ public class MemcacheCodec extends CombinedChannelDuplexHandler<MemcacheCodec.Me
         protected void decode(ChannelHandlerContext ctx, BinaryMemcacheResponse response, List<Object> in) throws Exception {
             Class<?> clazz = queue.poll();
 
-
             FullBinaryMemcacheResponse fullResponse = (FullBinaryMemcacheResponse) response;
             if (clazz.equals(GetRequest.class)) {
                 decodeGet(in, fullResponse);
+            } else if (clazz.equals(NoopRequest.class)) {
+                decodeNoop(in, fullResponse);
             }
         }
 
         private void decodeGet(List<Object> in, FullBinaryMemcacheResponse response) {
             // real decoding here.
             in.add(new GetResponse());
+        }
+
+        private void decodeNoop(List<Object> in, FullBinaryMemcacheResponse response) {
+            in.add(new NoopResponse());
         }
 
     }

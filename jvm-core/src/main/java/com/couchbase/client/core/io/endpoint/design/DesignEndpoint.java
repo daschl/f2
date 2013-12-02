@@ -41,36 +41,16 @@ import java.net.InetSocketAddress;
  */
 public class DesignEndpoint extends AbstractEndpoint<DesignRequest, DesignResponse> {
 
-    private static final NettyClientSocketOptions SOCKET_OPTIONS = new NettyClientSocketOptions()
-        .pipelineConfigurer(new Consumer<ChannelPipeline>() {
-            @Override
-            public void accept(ChannelPipeline pipeline) {
-                pipeline
-                    .addLast(new HttpClientCodec())
-                    .addLast(new HttpObjectAggregator(Integer.MAX_VALUE))
-                    .addLast(new DesignCodec());
-            }
-        }
-    );
-
-    /**
-     * Create a new {@link DesignEndpoint} and supply essential params.
-     *
-     * @param addr the socket address to connect to.
-     * @param env the environment to attach to.
-     */
     public DesignEndpoint(final InetSocketAddress addr, final Environment env) {
-        super(addr, env, SOCKET_OPTIONS);
+        super(addr, env);
     }
 
-    /**
-     * Create a new {@link DesignEndpoint} and supply essential params.
-     *
-     * @param addr the socket address to connect to.
-     * @param env the environment to attach to.
-     * @param reconnect the {@link reactor.tcp.Reconnect} strategy to use.
-     */
-    public DesignEndpoint(final InetSocketAddress addr, final Environment env, final Reconnect reconnect) {
-        super(addr, env, SOCKET_OPTIONS, reconnect);
+    @Override
+    protected void customEndpointHandlers(final ChannelPipeline pipeline) {
+        pipeline
+            .addLast(new HttpClientCodec())
+            .addLast(new HttpObjectAggregator(Integer.MAX_VALUE))
+            .addLast(new DesignCodec());
     }
+
 }
