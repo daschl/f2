@@ -24,9 +24,10 @@ package com.couchbase.client.core.io.endpoint
 
 import io.netty.channel.ChannelPipeline
 import io.netty.channel.EventLoopGroup
+import io.netty.channel.embedded.EmbeddedChannel
 import io.netty.channel.nio.NioEventLoopGroup
 import reactor.core.Environment
-
+import reactor.event.Event
 import spock.lang.Specification
 
 /**
@@ -35,40 +36,115 @@ import spock.lang.Specification
 class AbstractEndpointSpec extends Specification {
 
     def env = new Environment()
-    def addr = new InetSocketAddress(1234)
-    def group = new NioEventLoopGroup()
-    def notReconnectingEndpoint = new DummyEndpoint(addr, env, group)
+    def embeddedChannel = new EmbeddedChannel()
+    def mockedBootstrap = Mock(BootstrapAdapter)
+    def endpoint = new DummyEndpoint(mockedBootstrap, env)
 
     def "A Endpoint should be in a DISCONNECTED state after construction"() {
         expect:
-        notReconnectingEndpoint.state() == EndpointState.DISCONNECTED
+        endpoint.state() == EndpointState.DISCONNECTED
     }
 
     def "A Endpoint should be in a CONNECTED state after a successful connect attempt"() {
+        when:
+        def connectPromise = endpoint.connect()
+
+        then:
+        1 * mockedBootstrap.connect() >> embeddedChannel.newSucceededFuture()
+        connectPromise.await() == EndpointState.CONNECTED
+        endpoint.state() == EndpointState.CONNECTED
     }
 
-    def "A Endpoint should be in a DISCONNECTED state after a unsuccessful connect attempt"() {
+    def "A Endpoint should be in a RECONNECTING state after a unsuccessful connect attempt"() {
+        when:
+        def endpoint = new DummyEndpoint(new InetSocketAddress(9988), new Environment(), new NioEventLoopGroup())
+        def connectPromise = endpoint.connect()
+
+        then:
+        connectPromise.await() == EndpointState.RECONNECTING
+        endpoint.state() == EndpointState.RECONNECTING
+
+        when:
+        def disconnectPromise = endpoint.disconnect()
+
+        then:
+        disconnectPromise.await() == EndpointState.DISCONNECTED
+        endpoint.state() == EndpointState.DISCONNECTED
     }
 
     def "Should silently swallow duplicate CONNECT attempt while still CONNECTING"() {
+        setup:
+        def promise = embeddedChannel.newPromise()
+
+        when:
+        def firstConnectAttempt = endpoint.connect()
+        def secondConnectAttempt = endpoint.connect()
+
+        Thread.start {
+            sleep(2000)
+            promise.setSuccess()
+        }
+
+        then:
+        1 * mockedBootstrap.connect() >> promise
+        firstConnectAttempt.await() == EndpointState.CONNECTED
+        secondConnectAttempt.await() == EndpointState.CONNECTING
     }
 
     def "Should silently swallow duplicate CONNECT attempt when CONNECTED"() {
+        when:
+        def connectPromise = endpoint.connect()
+
+        then:
+        1 * mockedBootstrap.connect() >> embeddedChannel.newSucceededFuture()
+        connectPromise.await() == EndpointState.CONNECTED
+
+        when:
+        def anotherConnectAttempt = endpoint.connect()
+
+        then:
+        0 * mockedBootstrap.connect()
+        anotherConnectAttempt.await() == EndpointState.CONNECTED
     }
 
     def "Should be in a DISCONNECTED state after disconnecting"() {
-    }
+        when:
+        def connectPromise = endpoint.connect()
 
-    def "Should swallow disconnect attempt when DISCONNECTED"() {
-    }
+        then:
+        1 * mockedBootstrap.connect() >> embeddedChannel.newSucceededFuture()
+        connectPromise.await() == EndpointState.CONNECTED
 
-    def "Should swallow disconnect attempt when DISCONNECTING"() {
+        when:
+        def disconnectPromise = endpoint.disconnect()
+
+        then:
+        disconnectPromise.await() == EndpointState.DISCONNECTED
+        endpoint.state() == EndpointState.DISCONNECTED
     }
 
     def "Should throw exception when writing payload and not connected"() {
+        when:
+        endpoint.sendAndReceive(Event.wrap("Payload"))
+
+        then:
+        def e = thrown(EndpointNotConnectedException)
+        e.message == "Endpoint is not connected"
+
     }
 
     def "Should update the EndpointState Stream during phases"() {
+        setup:
+        def expectedTransitions = 4
+        def stream = endpoint.stateStream()
+
+        when:
+        def connectPromise = endpoint.connect().await()
+        def disconnectPromise = endpoint.disconnect().await()
+
+        then:
+        1 * mockedBootstrap.connect() >> embeddedChannel.newSucceededFuture()
+        stream.acceptCount == expectedTransitions
     }
 
     /**
@@ -78,6 +154,10 @@ class AbstractEndpointSpec extends Specification {
 
         DummyEndpoint(InetSocketAddress addr, Environment env, EventLoopGroup group) {
             super(addr, env, group)
+        }
+
+        DummyEndpoint(BootstrapAdapter bootstrap, Environment env) {
+            super(bootstrap, env)
         }
 
         @Override

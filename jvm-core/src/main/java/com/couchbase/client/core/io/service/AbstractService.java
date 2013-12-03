@@ -78,16 +78,6 @@ public abstract class AbstractService<REQ, RES> implements Service<REQ, RES> {
     private final Stream<ServiceState> serviceStateStream;
 
     /**
-     * The number of {@link com.couchbase.client.core.io.endpoint.Endpoint}s to keep open.
-     */
-    private final int endpointPoolSize;
-
-    /**
-     * The remote address of the service.
-     */
-    private final InetSocketAddress remoteAddress;
-
-    /**
      * Holds all currently registered {@link Endpoint}s.
      */
     private final Registry<Endpoint<REQ, RES>> endpointRegistry;
@@ -120,8 +110,6 @@ public abstract class AbstractService<REQ, RES> implements Service<REQ, RES> {
      */
     protected AbstractService(final InetSocketAddress remoteAddress, short endpointPoolSize, Environment env) {
         this.env = env;
-        this.remoteAddress = remoteAddress;
-        this.endpointPoolSize = endpointPoolSize;
         endpointRegistry = new CachingRegistry<Endpoint<REQ, RES>>();
 
         ServiceType serviceType = serviceType();

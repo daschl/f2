@@ -24,13 +24,35 @@ package com.couchbase.client.core.io.endpoint;
 
 /**
  * Contains all states in which an {@link Endpoint} can be all the time.
+ *
+ * A {@link Endpoint} implements a very simple state machine, transitioning through the various connect
+ * stages, eventually ending back in the {@link #DISCONNECTED} state after shutdown.
  */
 public enum EndpointState {
 
+    /**
+     * The {@link Endpoint} is disconnected.
+     */
     DISCONNECTED,
+
+    /**
+     * The {@link Endpoint} is currently connecting.
+     */
     CONNECTING,
+
+    /**
+     * The {@link Endpoint} is connected.
+     */
     CONNECTED,
+
+    /**
+     * The {@link Endpoint} is reconnecting.
+     */
     RECONNECTING,
+
+    /**
+     * The {@link Endpoint} is disconnecting.
+     */
     DISCONNECTING
 
 }

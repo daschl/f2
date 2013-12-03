@@ -28,7 +28,10 @@ import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
+import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
+import io.netty.util.concurrent.Future;
+import io.netty.util.concurrent.GenericFutureListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.Environment;
@@ -38,11 +41,9 @@ import reactor.core.composable.Stream;
 import reactor.core.composable.spec.Promises;
 import reactor.core.composable.spec.Streams;
 import reactor.event.Event;
-import reactor.tcp.Reconnect;
-
-import reactor.tcp.spec.IncrementalBackoffReconnectSpec;
 
 import java.net.InetSocketAddress;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Implements common functionality needed by all {@link Endpoint}s.
@@ -84,7 +85,7 @@ public abstract class AbstractEndpoint<REQ, RES> implements Endpoint<REQ, RES> {
     /**
      * {@link Bootstrap} to use for this endpoint.
      */
-    private final Bootstrap connectionBootstrap;
+    private final BootstrapAdapter connectionBootstrap;
 
     /**
      * Represents the Netty channel of this endpoint.
@@ -97,10 +98,28 @@ public abstract class AbstractEndpoint<REQ, RES> implements Endpoint<REQ, RES> {
     private volatile EndpointState state = EndpointState.DISCONNECTED;
 
     /**
+     * If the {@link Endpoint} should still retry if the connection closes.
+     */
+    private volatile boolean shouldRetry = true;
+
+    /**
      * Preload the exceptions to make sure they do not contain misleading values.
      */
     static {
         NOT_CONNECTED_EXCEPTION.setStackTrace(new StackTraceElement[0]);
+    }
+
+    /**
+     * Constructor used for testing purposes.
+     *
+     * @param bootstrap
+     * @param env
+     */
+    AbstractEndpoint(final BootstrapAdapter bootstrap, final Environment env) {
+        this.env = env;
+        endpointStateDeferred = Streams.defer(env, defaultPromiseEnv);
+        endpointStateStream = endpointStateDeferred.compose();
+        connectionBootstrap = bootstrap;
     }
 
     /**
@@ -115,20 +134,23 @@ public abstract class AbstractEndpoint<REQ, RES> implements Endpoint<REQ, RES> {
         endpointStateDeferred = Streams.defer(env, defaultPromiseEnv);
         endpointStateStream = endpointStateDeferred.compose();
 
-        connectionBootstrap = new Bootstrap()
+        connectionBootstrap = new BootstrapAdapter(new Bootstrap()
             .group(group)
             .channel(NioSocketChannel.class)
             .handler(new ChannelInitializer<SocketChannel>() {
                 @Override
-                protected void initChannel(SocketChannel ch) throws Exception {
+                protected void initChannel(final SocketChannel ch) throws Exception {
                     ChannelPipeline pipeline = ch.pipeline();
-                    //pipeline.addLast(new LoggingHandler());
+                    if (LOGGER.isTraceEnabled()) {
+                        pipeline.addLast(new LoggingHandler(LogLevel.TRACE));
+                    }
+
                     customEndpointHandlers(pipeline);
                     pipeline.addLast(new GenericEndpointHandler<REQ, RES>());
                 }
             })
             .option(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT)
-            .remoteAddress(addr);
+            .remoteAddress(addr));
     }
 
     /**
@@ -143,39 +165,75 @@ public abstract class AbstractEndpoint<REQ, RES> implements Endpoint<REQ, RES> {
         if (state == EndpointState.CONNECTED || state  == EndpointState.CONNECTING) {
             return Promises.success(state).get();
         }
-        transitionState(EndpointState.CONNECTING);
+
+        if (state != EndpointState.RECONNECTING) {
+            transitionState(EndpointState.CONNECTING);
+        }
 
         final Deferred<EndpointState, Promise<EndpointState>> deferred = Promises.defer(env, defaultPromiseEnv);
         connectionBootstrap.connect().addListener(new ChannelFutureListener() {
             @Override
-            public void operationComplete(ChannelFuture future) throws Exception {
+            public void operationComplete(final ChannelFuture future) throws Exception {
                 if (future.isSuccess()) {
                     channel = future.channel();
                     transitionState(EndpointState.CONNECTED);
                     LOGGER.debug("Successfully connected Endpoint to: " + channel.remoteAddress());
-                    deferred.accept(state);
                 } else {
                     channel = null;
-                    transitionState(EndpointState.DISCONNECTED);
-                    LOGGER.debug("Could not connect to Endpoint", future.cause());
-                    deferred.accept(state);
+                    transitionState(EndpointState.RECONNECTING);
+                    long nextReconnectDelay = nextReconnectDelay();
+                    LOGGER.debug("Could not connect to Endpoint, retrying with delay: " + nextReconnectDelay,
+                        future.cause());
+
+                    future.channel().eventLoop().schedule(new Runnable() {
+                        @Override
+                        public void run() {
+                            if (shouldRetry) {
+                                connect();
+                            }
+                        }
+                    }, nextReconnectDelay, TimeUnit.MILLISECONDS);
                 }
+                deferred.accept(state);
             }
         });
+        addRetryListener();
         return deferred.compose();
+    }
+
+    /**
+     * Adds a listener to retry if the underlying channel gets closed.
+     */
+    private void addRetryListener() {
+        if (state == EndpointState.CONNECTED) {
+            channel.closeFuture().addListener(new GenericFutureListener<Future<Void>>() {
+                @Override
+                public void operationComplete(Future<Void> future) throws Exception {
+                    if (shouldRetry) {
+                        connect();
+                    }
+                }
+            });
+        }
     }
 
     @Override
     public Promise<EndpointState> disconnect() {
-        if (state == EndpointState.DISCONNECTED || state == EndpointState.DISCONNECTING) {
+        shouldRetry = false;
+        if (state != EndpointState.CONNECTED) {
+            if (state == EndpointState.CONNECTING || state == EndpointState.RECONNECTING) {
+                transitionState(EndpointState.DISCONNECTED);
+            }
+
             return Promises.success(state).get();
         }
+
         transitionState(EndpointState.DISCONNECTING);
 
         final Deferred<EndpointState, Promise<EndpointState>> deferred = Promises.defer(env, defaultPromiseEnv);
         channel.disconnect().addListener(new ChannelFutureListener() {
             @Override
-            public void operationComplete(ChannelFuture future) throws Exception {
+            public void operationComplete(final ChannelFuture future) throws Exception {
                 transitionState(EndpointState.DISCONNECTED);
                 deferred.accept(state);
                 if (future.isSuccess()) {
@@ -195,6 +253,7 @@ public abstract class AbstractEndpoint<REQ, RES> implements Endpoint<REQ, RES> {
         if (!isConnected()) {
             throw NOT_CONNECTED_EXCEPTION;
         }
+
         final Deferred<RES, Promise<RES>> deferred = Promises.defer(env, Environment.EVENT_LOOP);
         requestEvent.setReplyTo(deferred);
         channel.write(requestEvent);
@@ -223,8 +282,20 @@ public abstract class AbstractEndpoint<REQ, RES> implements Endpoint<REQ, RES> {
      */
     private void transitionState(final EndpointState newState) {
         if (state != newState) {
+            LOGGER.debug("Transitioning Endpoint from " + state + " into " + newState);
             state = newState;
             endpointStateDeferred.accept(newState);
         }
+    }
+
+    /**
+     * Calculates the next reconnect delay in Miliseconds.
+     *
+     * TODO: add configurable backoff delay
+     *
+     * @return the reconnect delay based on a strategy.
+     */
+    private long nextReconnectDelay() {
+        return 0;
     }
 }
