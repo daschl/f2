@@ -150,6 +150,8 @@ public abstract class AbstractEndpoint<REQ, RES> implements Endpoint<REQ, RES> {
                 }
             })
             .option(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT)
+            .option(ChannelOption.TCP_NODELAY, false)
+            .option(ChannelOption.WRITE_BUFFER_LOW_WATER_MARK, 1500)
             .remoteAddress(addr));
     }
 
@@ -177,13 +179,17 @@ public abstract class AbstractEndpoint<REQ, RES> implements Endpoint<REQ, RES> {
                 if (future.isSuccess()) {
                     channel = future.channel();
                     transitionState(EndpointState.CONNECTED);
-                    LOGGER.debug("Successfully connected Endpoint to: " + channel.remoteAddress());
+                    if (LOGGER.isDebugEnabled()) {
+                        LOGGER.debug("Successfully connected Endpoint to: " + channel.remoteAddress());
+                    }
                 } else {
                     channel = null;
                     transitionState(EndpointState.RECONNECTING);
                     long nextReconnectDelay = nextReconnectDelay();
-                    LOGGER.debug("Could not connect to Endpoint, retrying with delay: " + nextReconnectDelay,
-                        future.cause());
+                    if (LOGGER.isDebugEnabled()) {
+                        LOGGER.debug("Could not connect to Endpoint, retrying with delay: " + nextReconnectDelay,
+                            future.cause());
+                    }
 
                     future.channel().eventLoop().schedule(new Runnable() {
                         @Override
@@ -254,7 +260,7 @@ public abstract class AbstractEndpoint<REQ, RES> implements Endpoint<REQ, RES> {
             throw NOT_CONNECTED_EXCEPTION;
         }
 
-        final Deferred<RES, Promise<RES>> deferred = Promises.defer(env, Environment.EVENT_LOOP);
+        final Deferred<RES, Promise<RES>> deferred = Promises.defer(env, Environment.RING_BUFFER);
         requestEvent.setReplyTo(deferred);
         channel.write(requestEvent);
         return deferred.compose();
@@ -282,7 +288,9 @@ public abstract class AbstractEndpoint<REQ, RES> implements Endpoint<REQ, RES> {
      */
     private void transitionState(final EndpointState newState) {
         if (state != newState) {
-            LOGGER.debug("Transitioning Endpoint from " + state + " into " + newState);
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug("Transitioning Endpoint from " + state + " into " + newState);
+            }
             state = newState;
             endpointStateDeferred.accept(newState);
         }

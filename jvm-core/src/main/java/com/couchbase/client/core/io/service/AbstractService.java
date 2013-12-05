@@ -102,6 +102,20 @@ public abstract class AbstractService<REQ, RES> implements Service<REQ, RES> {
     protected abstract ServiceType serviceType();
 
     /**
+     * Constructor helpful for testing and mocking the registry.
+     *
+     * @param registry the registry with all the endpoints.
+     * @param env the environment to use.
+     */
+    AbstractService(Registry<Endpoint<REQ, RES>> registry, Environment env) {
+        this.env = env;
+        endpointRegistry = registry;
+
+        serviceStateDeferred = Streams.defer(env, defaultPool);
+        serviceStateStream = serviceStateDeferred.compose();
+    }
+
+    /**
      * Create a new {@link AbstractService} and initialize the underlying {@link Endpoint}s.
      *
      * @param remoteAddress the remote address to use.

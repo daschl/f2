@@ -24,6 +24,7 @@ package com.couchbase.client.core.io.endpoint;
 
 import io.netty.channel.ChannelHandlerAppender;
 import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelPromise;
 import io.netty.handler.codec.MessageToMessageDecoder;
 import io.netty.handler.codec.MessageToMessageEncoder;
 import reactor.core.composable.Deferred;
@@ -83,6 +84,19 @@ public class GenericEndpointHandler<REQ, RES> extends ChannelHandlerAppender {
             out.add(msg.getData());
         }
 
+        /*@Override
+        public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) throws Exception {
+            super.write(ctx, msg, promise);
+            ctx.flush();
+        }*/
+
+        @Override
+        public void channelWritabilityChanged(ChannelHandlerContext ctx) throws Exception {
+            super.channelWritabilityChanged(ctx);
+            if (ctx.channel().isWritable() == false && ctx.channel().isActive()) {
+                ctx.flush();
+            }
+        }
     }
 
 }
